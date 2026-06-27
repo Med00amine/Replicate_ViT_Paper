@@ -1,6 +1,6 @@
 # Replicate ViT Paper
 
-This project is a PyTorch notebook that reproduces the main ideas behind the Vision Transformer (ViT) paper, then compares a custom ViT implementation with a pretrained `torchvision` ViT model on a small image classification dataset.
+This project is a PyTorch notebook that reproduces the main ideas behind the Vision Transformer (ViT) paper https://arxiv.org/pdf/2010.11929, then compares a custom ViT implementation with a pretrained `torchvision` ViT model on a small image classification dataset.
 
 The notebook trains on the `pizza_steak_sushi` dataset from Daniel Bourke's `pytorch-deep-learning` repository and classifies images into three classes:
 
