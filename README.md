@@ -1,119 +1,68 @@
-# Replicate ViT Paper
+# Replicating the Vision Transformer (ViT) Paper in PyTorch
 
-This project is a PyTorch notebook that reproduces the main ideas behind the Vision Transformer (ViT) paper https://arxiv.org/pdf/2010.11929, then compares a custom ViT implementation with a pretrained `torchvision` ViT model on a small image classification dataset.
+![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)
+![Jupyter](https://img.shields.io/badge/Notebook-Jupyter-orange)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Med00amine/Replicate_ViT_Paper/blob/main/VIT_Paper.ipynb)
 
-The notebook trains on the `pizza_steak_sushi` dataset from Daniel Bourke's `pytorch-deep-learning` repository and classifies images into three classes:
+This notebook builds the Vision Transformer from **[An Image is Worth 16x16 Words](https://arxiv.org/abs/2010.11929)** (Dosovitskiy et al., 2020) from scratch in PyTorch. It then compares the from-scratch model with a pretrained `torchvision` ViT-B/16 used for transfer learning on a small 3-class food dataset (pizza, steak, sushi).
 
-- pizza
-- steak
-- sushi
+## Key Takeaway
 
-## Project Files   
+| Model | Params | Size | Test loss | Test accuracy (epoch 10) |
+|---|---:|---:|---:|---:|
+| ViT-Base, trained from scratch | ~85.8M | ~327 MB | 1.03 | 52.4% |
+| Pretrained ViT-B/16 (frozen backbone, new head) | ~85.8M (only ~2.3K trainable) | ~327 MB | 0.21 | **91.8%** |
 
-```text
-.
-|-- VIT_Paper.ipynb
-|-- README.md
-`-- .gitattributes
-```
+The from-scratch model stays near **chance level (~33%)** for most of training. Its 52% at the final epoch is noisy, not a sign that it learned well. This matches a main point of the paper: transformers lack the built-in assumptions about images that CNNs have, so they need **large-scale pretraining** (ImageNet-21k / JFT-300M) to work well. With a few hundred images, transfer learning wins clearly.
 
-## What the Notebook Does
+## What's Implemented
 
-`VIT_Paper.ipynb` walks through:
+Each part maps to an equation or table in the paper:
 
-1. Installing/checking PyTorch and TorchVision versions.
-2. Downloading the pizza, steak, sushi dataset.
-3. Creating image transforms, datasets, and dataloaders.
-5. Building ViT components from scratch:
-   - patch embedding
-   - multi-head self-attention block
-   - MLP block
-   - transformer encoder block
-   - full ViT encoder/classifier
-6. Training the custom ViT model.
-7. Loading a pretrained `torchvision.models.vit_b_16` model.
-8. Freezing pretrained weights and replacing the classifier head.
-9. Training the pretrained ViT classifier head.
-10. Running prediction on a custom pizza image.
+| Component | Paper reference | Class |
+|---|---|---|
+| Patch + position embeddings, class token | Eq. 1 | `PatchEmbedding` |
+| Multi-head self-attention with pre-LayerNorm | Eq. 2 | `MultiheadSelfAttentionBlock` |
+| MLP block (GELU, dropout) | Eq. 3 | `MLPBlock` |
+| Transformer encoder block with residuals | Eq. 2–3 | `TransformerEncoderBlock` |
+| Full model + classification head | Eq. 4, Table 1 | `VITEncoder` |
 
-## Requirements
+Hyperparameters follow **ViT-Base** (Table 1): 16×16 patches, 768-dim embeddings, 12 layers, 12 heads, 3072-dim MLP, dropout 0.1.
 
-The notebook expects Python 3 and the following main packages:
+## Notebook Walkthrough
 
-```bash
-pip install torch torchvision torchaudio torchinfo matplotlib requests
-```
-
-The notebook also downloads helper code from:
-
-```text
-https://github.com/mrdbourke/pytorch-deep-learning
-```
-
-Specifically, it uses:
-
-- `going_modular.going_modular.data_setup`
-- `going_modular.going_modular.engine`
-- `going_modular.going_modular.predictions`
-- `helper_functions.py`
-
-## Recommended Environment
-
-- Python 3.9+
-- PyTorch 1.12+ or PyTorch 2.x
-- TorchVision 0.13+
-- Jupyter Notebook, JupyterLab, or Google Colab
-- CUDA-compatible GPU recommended, but CPU can run the notebook more slowly
+1. Environment setup (torch ≥ 1.12, torchvision ≥ 0.13)
+2. Download the pizza, steak, sushi dataset
+3. Transforms (resize to 224×224) and DataLoaders (batch size 32)
+4. Build the ViT components step by step
+5. Train the from-scratch ViT (Adam, lr 1e-3, 10 epochs)
+6. Load pretrained `vit_b_16`, freeze the backbone, and replace the head
+7. Train the classifier head (10 epochs)
+8. Predict on a custom image
 
 ## How to Run
 
-1. Clone the repository:
+**Easiest:** click the *Open in Colab* badge above and use a GPU runtime.
+
+**Locally:**
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Med00amine/Replicate_ViT_Paper.git
 cd Replicate_ViT_Paper
+pip install -r requirements.txt
+jupyter notebook VIT_Paper.ipynb
 ```
 
-2. Install dependencies:
+The notebook downloads the dataset and helper modules (`going_modular`, `helper_functions.py`) from [mrdbourke/pytorch-deep-learning](https://github.com/mrdbourke/pytorch-deep-learning) automatically. A CUDA GPU is recommended; CPU works but is slow.
 
-```bash
-pip install torch torchvision torchaudio torchinfo matplotlib requests
-```
+## What I'd Try Next
 
-3. Start Jupyter:
+- Data augmentation (RandAugment, Mixup) and a learning-rate warmup + cosine schedule, as used in the paper
+- A smaller ViT (e.g. ViT-Tiny) to see whether from-scratch training improves on small data
+- Fine-tuning the whole pretrained model instead of only the head
+- Visualizing attention maps
 
-```bash
-jupyter notebook
-```
+## References
 
-4. Open and run:
-
-```text
-VIT_Paper.ipynb
-```
-
-The notebook will download the dataset and helper scripts automatically if they are not already available.
-
-## Model Results
-
-The notebook reports approximately:
-
-| Model | Model size | Test loss | Test accuracy |
-| --- | ---: | ---: | ---: |
-| Custom replicated ViT | 327 MB | ~1.0334 | ~52.37% |
-| Pretrained ViT-B/16 | 327 MB | ~0.2060 | ~91.76% |
-
-The pretrained ViT performs much better because it was pretrained on a much larger dataset, while the custom ViT is trained from scratch on a small dataset of roughly a few hundred images.
-
-## Notes
-
-- The custom model uses ViT-Base-style hyperparameters such as 16x16 patches, 768-dimensional embeddings, 12 transformer layers, and 12 attention heads.
-- The dataset is small, so the from-scratch model is mainly useful for learning the architecture rather than achieving state-of-the-art accuracy.
-- The pretrained model is better suited for practical transfer learning.
-
-## Reference
-
-This project is inspired by:
-
-- Vision Transformer paper: "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale"
-- Daniel Bourke's PyTorch deep learning materials: `mrdbourke/pytorch-deep-learning`
+- Dosovitskiy et al., *An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale*, ICLR 2021. [arXiv:2010.11929](https://arxiv.org/abs/2010.11929)
+- Daniel Bourke, [Zero to Mastery: PyTorch for Deep Learning](https://github.com/mrdbourke/pytorch-deep-learning), Section 08 (Paper Replicating), which this project follows
